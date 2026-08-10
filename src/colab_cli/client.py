@@ -21,6 +21,12 @@ from typing import Dict, List, Optional, Union
 from urllib.parse import urljoin, urlparse
 import uuid
 
+from colab_cli.consumption import (
+    CcuInfo,
+    ConsumptionDataSource,
+    ConsumptionFetchResult,
+    consumption_user_info_from_tunnel,
+)
 from colab_cli.utils import get_status_code
 from pydantic import BaseModel, Field, TypeAdapter
 import requests
@@ -240,6 +246,13 @@ class Client:
         if schema is None:
             return
         return TypeAdapter(schema).validate_python(json.loads(body))
+
+    def get_consumption_user_info(self) -> ConsumptionFetchResult:
+        """Fetch account-level CCU balance and usage rate from the session backend."""
+        url = urljoin(self.colab_domain, f"{TUN_ENDPOINT}/ccu-info")
+        ccu = self._issue_request(url, schema=CcuInfo)
+        info = consumption_user_info_from_tunnel(ccu)
+        return ConsumptionFetchResult(info=info, source=ConsumptionDataSource.TUNNEL)
 
     def list_assignments(self) -> List[ListedAssignment]:
         url = urljoin(self.colab_domain, f"{TUN_ENDPOINT}/assignments")
